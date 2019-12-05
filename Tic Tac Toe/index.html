@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Tic Tac Toe</title>
+        <link rel="icon"  href="imagenes/logo.ico">
+        
+        <style type="text/css">
+            body{ 
+                width: 960px; 
+                margin: 0 auto;
+            }
+            h1{
+                text-align: center;
+                color: black;
+            }
+            #pantalla{ 
+                border: groove 10px brown;
+                background: lightgreen;
+            }
+            #boton{
+                background-color: brown;
+                color: white;
+                font-size: 20px;
+                text-align: center;
+                font-weight: bolder;
+                padding: 3px;
+                border: solid 2px black;
+            }
+            #boton:hover{
+                background-color: lightcoral;
+                font-size: 22px;
+            }
+        
+        </style>
+        <script>
+            var ctx, canvas; //auxiliares para hacer moperaciones en el canvas
+            var fichas_array = new Array(); //arreglo que almacena las fichas  X , O
+            var COLUMNAS = 3; //columnas y renglones para verificar al ganador 
+            var RENGLONES = 3;//renglones para verificar al ganador
+            var fichas_X = 0;//contador de fichas del usuario para verificar si gano
+            var fichas_O = 0; //contadar de fichas de la maquina
+            var tiradas = 0; //contador de tiradas
+            var gameOver = false; //bandera para checar cuando termine el juego
+            var lados = 150; //variable que almacena la ficha 
+            
+             window.onload = function(){
+                /*carga el canvas y verifica si esta bien o manda msj de error*/
+                canvas = document.getElementById("pantalla");
+                if (canvas && canvas.getContext){
+                     ctx = canvas.getContext("2d"); //se obtiene el canvas para manipular operaciones
+                    if (ctx){
+                        /*Si canvas se ejecuto bien*/
+                        gato();
+                        mensaje("Pulse su jugada."); 
+                        //si todo salio bien permitira dar click sobre el canvas
+                        canvas.addEventListener("click",seleccionUsuario,false);
+                    } else{
+                        /*de otra forma mostrara un error*/
+                        alert("Error al crear el contexto!");
+                    }
+                }
+            }
+             
+             function gato(){
+                /*Estas funciones hacen que se cargue la imagen del tablero en el canvas*/
+                var imagen = new Image(); //cargando la imagen en el canvas
+                function procesaImagen(){ //funcion para dibujar en la imagen
+                    ctx.drawImage(imagen,0,0);
+                }
+                imagen.src = "tablero.png"; //asignando la imagen al canvas
+                imagen.onload = function(e){ 
+                    procesaImagen();//procesa la imagen al canvas
+                }
+                /*agregando las fichas al arreglo con su respectiva posicion en el canvas*/
+                fichas_array.push(new Ficha(288,29,lados,lados,0,0,0));//cada ficha tiene diferente posicion
+                fichas_array.push(new Ficha(423,29,lados,lados,1,0,1));
+                fichas_array.push(new Ficha(556,29,lados,lados,2,0,2));
+                fichas_array.push(new Ficha(288,160,lados,lados,3,1,0));
+                fichas_array.push(new Ficha(420,160,lados,lados,4,1,1));
+                fichas_array.push(new Ficha(560,160,lados,lados,5,1,2));
+                fichas_array.push(new Ficha(286,295,lados,lados,6,2,0));
+                fichas_array.push(new Ficha(424,295,lados,lados,7,2,1));
+                fichas_array.push(new Ficha(560,295,lados,lados,8,2,2));
+            }
+            
+            /* Funcion mensajes */
+            function mensaje(cadena){ //muestra el estado de la partida (gano,perdio,Empatados)
+                    var lon = (canvas.width-(20*cadena.length))/2;
+                    ctx.strokeStyle = "brown";
+                    ctx.clearRect(0,420,canvas.width,100);
+                    ctx.font = "bold 40px Courier";
+                    ctx.fillText(cadena,lon,470);
+                }
+            
+            /* funcion para crear Objeto ficha  (caracteristicas)*/
+            function Ficha(x,y,w,h,i,ren,col){
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+                this.i = i;
+                this.ren = ren;
+                this.col = col;
+                this.peso = 0;
+                this.valor = "";
+                this.pinta = pintaFicha;
+            }
+            
+            /* Dibujamos Visiblemente las fichas  X , O*/
+            function pintaFicha(valor){
+                this.valor = valor;
+                ctx.font = "bold 100px Arial";
+                ctx.fillStyle = "brown";
+                ctx.fillText(valor, this.x+30, this.y+100, this.w, this.h);
+                
+            }
+            
+            /* Coordenadas dentro del canvas */
+            function ajustar(xx, yy){//esta función delimita donde se puede posicionar la ficha en el canvas
+                var posCanvas = canvas.getBoundingClientRect();
+                var x = xx - posCanvas.left;
+                var y = yy - posCanvas.top;
+                return {x:x, y:y}
+            }
+            
+            
+             function seleccionUsuario(e){
+                /*Ajusta la posicion en coordenadas del click*/
+                var pos = ajustar(e.clientX, e.clientY);
+                var x = pos.x; //obtiene la posicion en x de donde esta posicionado el cursor
+                var y = pos.y;//obtiene la posicion en y de donde esta posicionado el cursor
+                /*Ciclo verificacion si se ha dado en el lugar correcto y si esta vacio*/         
+                var ficha;
+                for (i=0; i<fichas_array.length; i++){
+                    ficha = fichas_array[i];
+                        /*Aqui se verifica si el click esta dentro del espacio correcto*/
+                    if (ficha.x > 0){
+                    if ((x > ficha.x)&&
+                        (x < ficha.x + ficha.w)&&
+                        (y > ficha.y)&&
+                        (y < ficha.y + ficha.h)){
+                        tiradas++;  //aumenta uno a las tiradas
+                            break;  //Saca del ciclo
+                         }
+                    }
+                }
+                /*comprobar si aun se puede pintar ficha*/
+                if(i<fichas_array.length){
+                    /*Pintando la jugada del usuario (si esta vacio el lugar)*/
+                    if (ficha.valor == ""){
+                        ficha.pinta("X");
+                        /*Lanza un timer para que tire la pc en un segundo*/
+                        setTimeout(tiraMaquina,1000);
+                    }
+                }
+                /****Verificamos si ganamos*******/
+                    verificaRenglones(true); /*manda llamar las funciones que verifican si hay 3 en linea*/
+                    verificaColumnas(true);
+                    verificaDiagonal1(true);
+                    verificaDiagonal2(true);
+                if(gameOver==false && tiradas<9){ //compara  si no ha terminado el juego
+                    /***Si no ganamos****/
+                    mensaje("Pensando...");
+                    canvas.removeEventListener("click",seleccionUsuario,false);
+                } else {
+                    if(gameOver==false){ //esto en caso de que se acaben los turnos y nadie haya puesto 3 en linea
+                    mensaje("Empatados!!!");
+                        }
+                }
+            }
+            
+            /* Hay ya 3 X ó 3 O? */
+            function verificaFin(O, X){
+                fin = false;//bandera que devuelve  true si ya se completaron 3 fichas en raya
+                if (X == 3) {//compara que existan 3 fichas  del usuario en raya
+                    fin = true;
+                    mensaje("Felicidades, has ganado!!!");
+                    canvas.removeEventListener("click",seleccionUsuario,false); //sirve para que el usuario ya no pueda agrgar mas fichas al canvas
+                } else if (O == 3) { //compara si la pc puso 3 fichas en raya
+                    fin = true;
+                    mensaje("Lo siento, has Perdido");
+                    //sirve para que el usuario ya no pueda agrgar mas fichas al canvas
+                    canvas.removeEventListener("click",seleccionUsuario,false);
+                }
+                return fin;
+            }
+            
+            /* Detectando la ficha */
+            function buscaFicha(i,j){ //busca la ficha en uso en la matriz
+                for(k=0; k<fichas_array.length; k++){
+                    ficha = fichas_array[k];
+                    if(ficha.ren == i && ficha.col==j){
+                        break;
+                    }
+                }
+                return ficha;
+            }
+            
+            /* Cuantas X ó O por Renglon, posteriores funciones para Columnas y Diagonales */
+            function verificaRenglones(calculaPeso) {
+                if(gameOver==false){
+                    for (i=0; i<RENGLONES; i++) {
+                        fichas_X = 0;
+                        fichas_O = 0;
+                        for (j=0; j<COLUMNAS; j++) {
+                            ficha = buscaFicha(i,j); //manda llamar a la funcion buscaFicha para recorrer renglones
+                            fichas_X += (ficha.valor=="X"?1:0); //acumula la fichas en x
+                            fichas_O += (ficha.valor=="O"?1:0); //acumula las fichas en y
+                        }
+                        if(calculaPeso){
+                            for (j=0; j<COLUMNAS; j++) {
+                                ficha = buscaFicha(i,j);
+                                pesoFicha(ficha.i, fichas_O, fichas_X);//funcion peso verifica la poscion en la que se va pintar la ficha
+                            }
+                        }
+                        gameOver = verificaFin(fichas_O, fichas_X);//MANDA LLAMAR VERIFICA FICHAS PARA CHECAR SI SE HAY 3 EN UN EN LOS RENGLONES
+                        if(gameOver) break;
+                    }
+                }
+            }
+            /*********************/
+
+            /****************Verificar Columnas*******************/
+            function verificaColumnas(calculaPeso) {
+                if(gameOver==false){//si aun no termina el juego
+                    for (j=0; j<COLUMNAS; j++) {
+                        fichas_X = 0; //acumulador fichas del usuario
+                        fichas_O = 0;//acumulador fichas pc
+                        for (i=0; i<RENGLONES; i++) {
+                            ficha = buscaFicha(i,j);   //manda llamar a la funcion buscaFicha para recorrer Columnas
+                            fichas_X += (ficha.valor=="X"?1:0); //incremeta las fichas del seleccionUsuario
+                            fichas_O += (ficha.valor=="O"?1:0);
+                        }
+                        if(calculaPeso){
+                            for (i=0; i<RENGLONES; i++) {
+                                ficha = buscaFicha(i,j);
+                                pesoFicha(ficha.i, fichas_O, fichas_X);//llama a la funcion peso  para la mejorJugada
+                            }
+                        }
+                        gameOver = verificaFin(fichas_O, fichas_X); //verifica si hay ganador
+                        if(gameOver) break;
+                    }
+                }
+            }
+            /*****************************************************/
+
+            /*******Verificar diagonal desendente********////
+            function verificaDiagonal1(calculaPeso) {
+                if(gameOver==false){
+                    fichas_X = 0; //acumulador usuario
+                    fichas_O = 0;//acumulador pc
+                    for (i=0; i<RENGLONES; i++) {
+                        ficha = buscaFicha(i,i); 
+                        fichas_X += (ficha.valor=="X"?1:0);
+                        fichas_O += (ficha.valor=="O"?1:0);
+                    }
+                    if(calculaPeso){
+                        for(i=0; i<RENGLONES; i++) {
+                            ficha = buscaFicha(i,i);
+                            pesoFicha(ficha.i, fichas_O, fichas_X);
+                        }
+                    }
+                    gameOver = verificaFin(fichas_O, fichas_X);//verifica si hay ganador
+                }
+            }
+            /**************************************************/
+
+            /*********Verificar Diagonal Acendente*****************/
+            function verificaDiagonal2(calculaPeso) {
+                if(gameOver==false){
+                    fichas_X = 0;//acumulador usuario
+                    fichas_O = 0;//acumulador pc
+                    j = 2; //si ya hay dos fichas pintadas
+                    for (i=0; i<RENGLONES; i++) { //recorrer
+                        ficha = buscaFicha(i,j);
+                        fichas_X += (ficha.valor=="X"?1:0);
+                        fichas_O += (ficha.valor=="O"?1:0);
+                        j--;
+                    }
+                    if(calculaPeso){//calcular peso para mejorJugada
+                        j = 2
+                        for (i=0; i<RENGLONES; i++) {
+                            ficha = buscaFicha(i,j);
+                            pesoFicha(ficha.i, fichas_O, fichas_X);
+                            j--;
+                        }
+                    }
+                    gameOver = verificaFin(fichas_O, fichas_X);
+                }
+            }
+            
+            /* Dónde es mejor poner la ficha? */
+            function pesoFicha(i,fichas_O, fichas_X) {
+                ficha = fichas_array[i];
+                if (ficha.valor == ""){ //compara si la casilla esta vacia 
+                    if (fichas_O == 2 && fichas_X == 0) { //compara si hay 2 O's 
+                        ficha.peso += 10; //aumenta el peso  para poner la ficha donde hay mas posibilidad de ganar
+                    } else if (fichas_O == 0 && fichas_X == 2) {
+                        ficha.peso += 6;//aumenta el peso si hay posibilidad de que el usuario gane
+                    } else if (fichas_O == 1 && fichas_X == 0) {
+                        ficha.peso += 3;//aumenta el peso si ya tiene una ficha en linea pintada
+                    } else {
+                        ficha.peso += 1; //aumenta el peso para pintar una ficha en linea
+                    }
+                } else {
+                    ficha.peso = 0; //el peso es cero si es la primer ficha a pintar por la pc
+                }
+            }
+            
+            /* Turno de la PC */
+            function tiraMaquina(){
+                tiradas++; //acumulador de los turnos
+                //console.log("Tirada numero: " + tiradas);
+                /*Comprobar si hay ganador*/
+                if (gameOver == false){
+                    /*Verificar con el peso*/
+                    verificaRenglones(true);
+                    verificaColumnas(true);
+                    verificaDiagonal1(true);
+                    verificaDiagonal2(true);
+                    /*Seleccionar mejor jugada*/
+                    fichas_X = 0;
+                    fichas_O = 0;
+                    mejorJugada = 0;
+                    for (i=0; i<fichas_array.length; i++){
+                        ficha = fichas_array[i];
+                        if (ficha.peso>mejorJugada){ //compara si es conveniente poner la ficha en la casilla
+                            mejorJugada = ficha.peso;
+                            ii = i; //toma el valor de la poscion donde esta la ficha de la mejor jugada
+                        }
+                    }
+                    /*Realizar jugada de pc*/
+                    ficha = fichas_array[ii];  //escribe en el arreglo la jugada segun la poscion de la mejorJugada
+                    ficha.pinta("O");//pinta la ficha O
+                    verificaRenglones(false); //verifica si hay 3 en linea en los renglones para la pc
+                    verificaColumnas(false); //verifica si hay 3 en linea en los renglones para la pc
+                    verificaDiagonal1(false);//verifica si hay 3 en linea en la diagonal descendente para la pc
+                    verificaDiagonal2(false);//verifica si hay 3 en linea en la diagonas ascendente para la pc
+                    /*Verificamos si alguien gano*/
+                    if(gameOver==false){
+                        /*Si nadie gano activa el listener de click*/
+                        if(tiradas<9){//permite agregar fichas mientras existan tiradas por hacer
+                            canvas.addEventListener("click",seleccionUsuario,false);
+                            mensaje("Pulse su jugada...");
+                        }
+                    }
+                }
+            } 
+             /* evento para reiniciar el canvas con el boton volver a jugar*/
+        </script>
+    </head>
+    <body>
+    
+        <h1>"Tic Tac Toe"</h1>
+            <canvas id="pantalla" width="1000px" height="500px">
+            </canvas>
+            
+            <button id="boton" type="reset" onclick="javascript:window.location.reload();">Volver a Jugar</button>
+    </body>
+    
+</html>
